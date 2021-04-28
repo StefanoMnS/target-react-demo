@@ -142,15 +142,7 @@ If you're already a Target client, try it out in your Experience Cloud Organizat
 1. Install dependencies: `npm i`
 2. Dev build: `npm run dev && npm start`
 3. Prod build: `npm run build && npm start`
-# react-shopping-cart-demo
 
-
-
-
-
-# react-shopping-cart-demo
-# target-react-demo
-# test
 
 
 
