@@ -1,37 +1,40 @@
-const fs = require("fs");
-const express = require("express");
-const cookieParser = require("cookie-parser");
+const fs = require('fs')
+const express = require('express')
+const cookieParser = require('cookie-parser')
 // Load the Target NodeJS SDK library
-const TargetClient = require("@adobe/target-nodejs-sdk");
+const TargetClient = require('@adobe/target-nodejs-sdk')
+
 // Load the Target configuration (replace with configurations specific to your Adobe Client & Org)
-const CONFIG = require("./config.json");
+const CONFIG = require('./config.json')
+
 // Load the template of the HTML page returned in the response
-const TEMPLATE = fs.readFileSync(`${__dirname}/index.tpl`).toString();
+const TEMPLATE = fs.readFileSync(`${__dirname}/index.tpl`).toString()
 
 // Initialize the Express app
-const app = express();
-const PORT = process.env.PORT;
+const app = express()
+const PORT = process.env.PORT
 
 // Enable TargetClient logging via the console logger
-const targetOptions = Object.assign({ logger: console }, CONFIG);
+const targetOptions = Object.assign({ logger: console }, CONFIG)
+
 // Create the TargetClient global instance
-const targetClient = TargetClient.create(targetOptions);
+const targetClient = TargetClient.create(targetOptions)
 
 // Setup cookie parsing middleware and static file serving from the /public directory
-app.use(cookieParser());
-app.use(express.static(`${__dirname}/public`));
+app.use(cookieParser())
+app.use(express.static(`${__dirname}/public`))
 
 /**
  * Sets cookies in the response object
  * @param res response to be returned to the client
  * @param cookie cookie to be set
  */
-function saveCookie(res, cookie) {
+function saveCookie (res, cookie) {
   if (!cookie) {
-    return;
+    return
   }
 
-  res.cookie(cookie.name, cookie.value, { maxAge: cookie.maxAge * 1000 });
+  res.cookie(cookie.name, cookie.value, { maxAge: cookie.maxAge * 1000 })
 }
 
 /**
@@ -39,27 +42,27 @@ function saveCookie(res, cookie) {
  * @param res response object returned to the client
  * @param targetResponse response received from Target Delivery API
  */
-function sendHtml(res, targetResponse) {
+function sendHtml (res, targetResponse) {
   // Set the serverState object, which at.js will use on the client-side to immediately apply Target offers
   const serverState = {
     request: targetResponse.request,
     response: targetResponse.response
-  };
+  }
 
   // Build the final HTML page by replacing the Target config and state placeholders with appropriate values
   let result = TEMPLATE.replace(/\$\{organizationId\}/g, CONFIG.organizationId)
-    .replace("${clientCode}", CONFIG.client)
-    .replace("${visitorState}", JSON.stringify(targetResponse.visitorState))
-    .replace("${serverState}", JSON.stringify(serverState, null, " "));
+    .replace('${clientCode}', CONFIG.client)
+    .replace('${visitorState}', JSON.stringify(targetResponse.visitorState))
+    .replace('${serverState}', JSON.stringify(serverState, null, ' '))
 
   if (CONFIG.serverDomain) {
-    result = result.replace("${serverDomain}", CONFIG.serverDomain);
+    result = result.replace('${serverDomain}', CONFIG.serverDomain)
   } else {
-    result = result.replace('serverDomain: "${serverDomain}"', "");
+    result = result.replace('serverDomain: "${serverDomain}"', '')
   }
 
   // Send the page to the client with a 200 OK HTTP status
-  res.status(200).send(result);
+  res.status(200).send(result)
 }
 
 /**
@@ -67,20 +70,20 @@ function sendHtml(res, targetResponse) {
  * with fetching Target data
  * @param res response object returned to the client
  */
-function sendErrorHtml(res) {
+function sendErrorHtml (res) {
   // Build the final HTML page, only Target config values are set in the template, for at.js initialization
   let result = TEMPLATE.replace(/\$\{organizationId\}/g, CONFIG.organizationId)
-    .replace("${clientCode}", CONFIG.client)
-    .replace("${visitorState}", "{}")
-    .replace("${serverState}", "{}");
+    .replace('${clientCode}', CONFIG.client)
+    .replace('${visitorState}', '{}')
+    .replace('${serverState}', '{}')
 
   if (CONFIG.serverDomain) {
-    result = result.replace("${serverDomain}", CONFIG.serverDomain);
+    result = result.replace('${serverDomain}', CONFIG.serverDomain)
   } else {
-    result = result.replace('serverDomain: "${serverDomain}"', "");
+    result = result.replace('serverDomain: "${serverDomain}"', '')
   }
 
-  res.status(200).send(result);
+  res.status(200).send(result)
 }
 
 /**
@@ -89,31 +92,31 @@ function sendErrorHtml(res) {
  * @returns {Object} response headers
  */
 const getResponseHeaders = () => ({
-  "Content-Type": "text/html",
-  "Expires": new Date().toUTCString()
-});
+  'Content-Type': 'text/html',
+  Expires: new Date().toUTCString()
+})
 
 /**
  * Sets headers and target cookies on the response, and sends the page with injected Target data back to the client
  * @param res response object to be returned to the client
  * @param targetResponse response received from Target Delivery API
  */
-function sendResponse(res, targetResponse) {
-  res.set(getResponseHeaders());
+function sendResponse (res, targetResponse) {
+  res.set(getResponseHeaders())
 
-  saveCookie(res, targetResponse.targetCookie);
-  saveCookie(res, targetResponse.targetLocationHintCookie);
-  sendHtml(res, targetResponse);
+  saveCookie(res, targetResponse.targetCookie)
+  saveCookie(res, targetResponse.targetLocationHintCookie)
+  sendHtml(res, targetResponse)
 }
 
 /**
  * Sets response headers and returns the page to the client, in case there was an error with fetching Target offers
  * @param res response object to be returned to the client
  */
-function sendErrorResponse(res) {
-  res.set(getResponseHeaders());
+function sendErrorResponse (res) {
+  res.set(getResponseHeaders())
 
-  sendErrorHtml(res);
+  sendErrorHtml(res)
 }
 
 /**
@@ -122,12 +125,12 @@ function sendErrorResponse(res) {
  * @param req client request object
  * @returns {Object} Target and Visitor cookies as Target Node Client options map
  */
-function getTargetCookieOptions(req) {
+function getTargetCookieOptions (req) {
   return {
     visitorCookie: req.cookies[TargetClient.getVisitorCookieName(CONFIG.organizationId)],
     targetCookie: req.cookies[TargetClient.TargetCookieName],
     targetLocationHintCookie: req.cookies[TargetClient.TargetLocationHintCookieName]
-  };
+  }
 }
 
 /**
@@ -137,14 +140,14 @@ function getTargetCookieOptions(req) {
  * @param req client request object
  * @returns {Object} Target Delivery API request with the Trace token set from the original request query parameter
  */
-function setTraceToken(trace = {}, req) {
-  const { authorizationToken = req.query.authorization } = trace;
+function setTraceToken (trace = {}, req) {
+  const { authorizationToken = req.query.authorization } = trace
 
-  if (!authorizationToken || typeof authorizationToken !== "string") {
-    return trace;
+  if (!authorizationToken || typeof authorizationToken !== 'string') {
+    return trace
   }
 
-  return Object.assign({}, trace, { authorizationToken });
+  return Object.assign({}, trace, { authorizationToken })
 }
 
 /**
@@ -153,21 +156,21 @@ function setTraceToken(trace = {}, req) {
  * @param req client request object
  * @param res client response object
  */
-async function processRequestWithTarget(request, req, res) {
+async function processRequestWithTarget (request, req, res) {
   // Set the trace data on the Delivery API request object, if available
-  request.trace = setTraceToken(request.trace, req);
+  request.trace = setTraceToken(request.trace, req)
   // Build Target Node.js SDK API getOffers options
-  const options = Object.assign({ request }, getTargetCookieOptions(req));
+  const options = Object.assign({ request }, getTargetCookieOptions(req))
 
   try {
     // Call Target Node.js SDK getOffers asynchronously
-    const resp = await targetClient.getOffers(options);
+    const resp = await targetClient.getOffers(options)
     // Send back the response with Target offers, getOffers call completes successfully
-    sendResponse(res, resp);
+    sendResponse(res, resp)
   } catch (e) {
     // Alternatively, log the error and send the page without Target data
-    console.error("AT error: ", e);
-    sendErrorResponse(res);
+    console.error('AT error: ', e)
+    sendErrorResponse(res)
   }
 }
 
@@ -176,28 +179,28 @@ async function processRequestWithTarget(request, req, res) {
  * @param req client request object
  * @returns {{url: *}} Target request address
  */
-function getAddress(req) {
+function getAddress (req) {
   return { url: req.headers.host + req.originalUrl }
 }
 
 // Setup the root route Express app request handler for GET requests
-app.get("/", (req, res) => {
+app.get('/', (req, res) => {
   // Build the Delivery API View Prefetch request
   const prefetchViewsRequest = {
     prefetch: {
       views: [{ address: getAddress(req) }]
     }
-  };
+  }
 
   // Process the request by calling Target Node.js SDK API
-  processRequestWithTarget(prefetchViewsRequest, req, res);
-});
+  processRequestWithTarget(prefetchViewsRequest, req, res)
+})
 
 // Startup the Express server listener
-app.listen(PORT, () => console.log(`Server listening on port ${PORT}...`));
+app.listen(PORT, () => console.log(`Server listening on port ${PORT}...`))
 
 // Stop the server on any app warnings
-process.on("warning", e => {
-  console.warn("Node application warning", e);
-  process.exit(-1);
-});
+process.on('warning', e => {
+  console.warn('Node application warning', e)
+  process.exit(-1)
+})

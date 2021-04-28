@@ -1,5 +1,4 @@
-var webpack = require('webpack');
-var path = require('path');
+const path = require('path')
 
 module.exports = {
   context: path.join(__dirname, './'),
@@ -31,4 +30,4 @@ module.exports = {
       }
     ]
   }
-};
+}
